@@ -4,7 +4,7 @@ build-backend = "pdm.backend"
 
 [project]
 name = "lib-python-template"
-version = "1.0.0"
+version = "1.0.1"
 description = "Python library template"
 license = "MIT"
 readme = "README.md"
