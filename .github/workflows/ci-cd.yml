@@ -1,10 +1,14 @@
 name: Release
+
 on:
   push:
     branches:
       - main
       - pre/*
 
+########################################################################
+# 1. Build
+########################################################################
 jobs:
   build:
     name: Build
@@ -15,24 +19,15 @@ jobs:
           sudo apt update
           sudo apt install -y git
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.10' }
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v3
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
 
-      - name: Install Node Env
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Checkout
-        uses: actions/checkout@v4.1.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, persist-credentials: false }
 
       - name: Build and validate package
         run: |
@@ -41,34 +36,28 @@ jobs:
           uv pip install --upgrade setuptools wheel hatchling
           uv sync --frozen
           uv pip install -e .
-          uv build
-          uv pip install --upgrade pkginfo==1.12.0 twine==6.0.1  # Upgrade pkginfo and install twine
+          uv build                      # creates dist/*
+          uv pip install --upgrade pkginfo==1.12.0 twine==6.0.1
           python -m twine check dist/*
 
-      - name: Debug Dist Directory
-        run: ls -al dist
-
-      - name: Cache build
-        uses: actions/cache@v3
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: ./dist
-          key: ${{ runner.os }}-build-${{ github.sha }}
+          name: dist
+          path: dist/
 
+#######################################################################
+# 2. Test
+#######################################################################
   test:
     name: Test
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4.1.1
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.10' }
+      - uses: astral-sh/setup-uv@v3
 
       - name: Install dependencies
         run: |
@@ -77,64 +66,68 @@ jobs:
           uv sync --frozen
           uv pip install -e .
 
-      - name: Run Linting and Formatting Checks
+      - name: Run linting / formatting
         run: |
           . .venv/bin/activate
-          ruff check langsmith_mcp_server tests
-          black --check langsmith_mcp_server tests
-          isort --check-only langsmith_mcp_server tests
+          ruff check python_lib_template tests
+          black --check python_lib_template tests
+          isort --check-only python_lib_template tests
 
-      # - name: Run Tests with Coverage
-      #   run: |
-      #     . .venv/bin/activate
-      #     pytest --cov=langsmith_mcp_server --cov-report=xml tests/
+###############################################################################
+# 3. semantic-version
+###############################################################################
+  semantic-version:
+    name: Version & GitHub release
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    if: |
+      github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/pre/')
+    permissions:                     # ← no id-token here
+      contents: write
+      issues: write
+      pull-requests: write
 
-      # - name: Upload Coverage to Codecov
-      #   uses: codecov/codecov-action@v3
-      #   with:
-      #     files: coverage.xml
-      #     fail_ci_if_error: false
-      #     token: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
 
-  # release:
-  #   name: Release
-  #   runs-on: ubuntu-latest
-  #   needs: [build, test]
-  #   environment: development
-  #   if: >
-  #       github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/pre/beta') ||
-  #       (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged &&
-  #        (github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'pre/beta'))
-  #   permissions:
-  #     contents: write
-  #     issues: write
-  #     pull-requests: write
-  #     id-token: write
-  #   steps:
-  #     - name: Checkout repo
-  #       uses: actions/checkout@v4.1.1
-  #       with:
-  #         fetch-depth: 0
-  #         persist-credentials: false
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
 
-  #     - name: Restore build artifacts
-  #       uses: actions/cache@v3
-  #       with:
-  #         path: ./dist
-  #         key: ${{ runner.os }}-build-${{ github.sha }}
+      - name: Run semantic-release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          semantic_version: 23
+          extra_plugins: |
+            @semantic-release/git
+            @semantic-release/commit-analyzer
+            @semantic-release/release-notes-generator
+            @semantic-release/changelog
+            @semantic-release/github
+            conventional-changelog-conventionalcommits
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  #     - name: Semantic Release
-  #       uses: cycjimmy/semantic-release-action@v4.1.0
-  #       with:
-  #         semantic_version: 23
-  #         extra_plugins: |
-  #           semantic-release-pypi@3
-  #           @semantic-release/git
-  #           @semantic-release/commit-analyzer@12
-  #           @semantic-release/release-notes-generator@13
-  #           @semantic-release/github@10
-  #           @semantic-release/changelog@6
-  #           conventional-changelog-conventionalcommits@7
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+###############################################################################
+# 4. publish
+###############################################################################
+  publish:
+    name: Publish to PyPI (trusted)
+    runs-on: ubuntu-latest
+    needs: semantic-version
+    permissions:
+      id-token: write          # minimal scope for OIDC
+    steps:
+      - uses: actions/checkout@v4     # provenance only
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish distributions
+        uses: pypa/gh-action-pypi-publish@v1
+        with:
+          packages-dir: dist/
+          verbose: true
