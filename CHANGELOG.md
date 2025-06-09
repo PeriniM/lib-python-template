@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/PeriniM/python-lib-template/compare/v1.0.1...v1.0.2) (2025-06-09)
+
+
+### Bug Fixes
+
+* description ([ef8f65d](https://github.com/PeriniM/python-lib-template/commit/ef8f65d20268de589000d5305f53523edb5ba560))
+
 ## [1.0.1](https://github.com/PeriniM/python-lib-template/compare/v1.0.0...v1.0.1) (2025-06-09)
 
 
