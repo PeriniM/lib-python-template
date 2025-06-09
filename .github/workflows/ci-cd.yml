@@ -4,15 +4,16 @@ on:
   push:
     branches:
       - main
-      - pre/*
+      - pre/*          # ← prerelease branches (e.g. pre/beta)
 
-########################################################################
-# 1. Build
-########################################################################
+###############################################################################
+# 1. BUILD: create wheels / sdists and upload them as an artifact            #
+###############################################################################
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+
     steps:
       - name: Install git
         run: |
@@ -20,7 +21,7 @@ jobs:
           sudo apt install -y git
 
       - uses: actions/setup-python@v5
-        with: { python-version: '3.10' }
+        with: { python-version: "3.10" }
 
       - uses: astral-sh/setup-uv@v3
       - uses: actions/setup-node@v4
@@ -36,7 +37,7 @@ jobs:
           uv pip install --upgrade setuptools wheel hatchling
           uv sync --frozen
           uv pip install -e .
-          uv build                      # creates dist/*
+          uv build                       # ➜ dist/*
           uv pip install --upgrade pkginfo==1.12.0 twine==6.0.1
           python -m twine check dist/*
 
@@ -46,17 +47,18 @@ jobs:
           name: dist
           path: dist/
 
-#######################################################################
-# 2. Test
-#######################################################################
+###############################################################################
+# 2. TEST: run linting / unit tests (add coverage if you want)               #
+###############################################################################
   test:
     name: Test
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: '3.10' }
+        with: { python-version: "3.10" }
       - uses: astral-sh/setup-uv@v3
 
       - name: Install dependencies
@@ -66,7 +68,7 @@ jobs:
           uv sync --frozen
           uv pip install -e .
 
-      - name: Run linting / formatting
+      - name: Lint & format checks
         run: |
           . .venv/bin/activate
           ruff check python_lib_template tests
@@ -74,15 +76,15 @@ jobs:
           isort --check-only python_lib_template tests
 
 ###############################################################################
-# 3. semantic-version
+# 3. semantic-version: bump version, tag, changelog, GitHub Release          #
+#    (NO access to PyPI)                                                     #
 ###############################################################################
   semantic-version:
     name: Version & GitHub release
     runs-on: ubuntu-latest
     needs: [build, test]
-    if: |
-      github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/pre/')
-    permissions:                     # ← no id-token here
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/pre/')
+    permissions:
       contents: write
       issues: write
       pull-requests: write
@@ -92,33 +94,34 @@ jobs:
         with: { fetch-depth: 0 }
 
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with: { node-version: 18 }   # Node LTS that all plugins support
 
-      - name: Run semantic-release
+      - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4
         with:
           semantic_version: 23
-          extra_plugins: |
-            @semantic-release/git
-            @semantic-release/commit-analyzer
-            @semantic-release/release-notes-generator
-            @semantic-release/changelog
-            @semantic-release/github
-            conventional-changelog-conventionalcommits
+          extra_plugins: |           # must match .releaserc.yml
+            @semantic-release/commit-analyzer@12
+            @semantic-release/release-notes-generator@13
+            @semantic-release/changelog@6
+            @semantic-release/github@10
+            @semantic-release/git@10
+            conventional-changelog-conventionalcommits@7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 ###############################################################################
-# 4. publish
+# 4. publish: isolated job that uploads to PyPI via Trust-ed Publishing OIDC #
 ###############################################################################
   publish:
-    name: Publish to PyPI (trusted)
+    name: Publish to PyPI (Trusted Publisher)
     runs-on: ubuntu-latest
     needs: semantic-version
     permissions:
-      id-token: write          # minimal scope for OIDC
+      id-token: write               # OIDC token for PyPI
+
     steps:
-      - uses: actions/checkout@v4     # provenance only
+      - uses: actions/checkout@v4
 
       - name: Download build artifact
         uses: actions/download-artifact@v4
