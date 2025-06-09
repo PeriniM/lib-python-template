@@ -1,3 +1,10 @@
+## [1.1.0-beta.1](https://github.com/PeriniM/lib-python-template/compare/v1.0.3...v1.1.0-beta.1) (2025-06-09)
+
+
+### Features
+
+* new docs ([a5f1628](https://github.com/PeriniM/lib-python-template/commit/a5f16283975c8b81d7400910b2ee560a866c07cb))
+
 ## [1.0.3](https://github.com/PeriniM/python-lib-template/compare/v1.0.2...v1.0.3) (2025-06-09)
 
 
