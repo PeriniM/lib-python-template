@@ -3,10 +3,10 @@
 .PHONY: install lint type-check test docs serve-docs build all clean
 
 # Variables
-PACKAGE_NAME = python_lib_template
+PACKAGE_NAME = lib_python_template
 TEST_DIR = tests
 
-# Default target	
+# Default target
 all: lint format type-check test docs
 
 # Install project dependencies

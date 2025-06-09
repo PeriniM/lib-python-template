@@ -71,9 +71,9 @@ jobs:
       - name: Lint & format checks
         run: |
           . .venv/bin/activate
-          ruff check python_lib_template tests
-          black --check python_lib_template tests
-          isort --check-only python_lib_template tests
+          ruff check lib_python_template tests
+          black --check lib_python_template tests
+          isort --check-only lib_python_template tests
 
 ###############################################################################
 # 3. semantic-version: bump version, tag, changelog, GitHub Release          #
