@@ -30,7 +30,7 @@ type-check:
 
 # Run Tests with Coverage
 test:
-	uv run pytest --disable-socket --allow-unix-socket $(TEST_DIR) --timeout 10
+	uv run pytest $(TEST_DIR)
 
 # Build Documentation using MkDocs
 docs:
