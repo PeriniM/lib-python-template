@@ -1,4 +1,3 @@
-
 def main() -> None:
     print("Welcome to this Python library template!")
 
