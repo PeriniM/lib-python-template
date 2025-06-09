@@ -30,7 +30,7 @@ type-check:
 
 # Run Tests with Coverage
 test:
-	uv run pytest --cov=$(PACKAGE_NAME) --cov-report=xml $(TEST_DIR)/
+	uv run pytest --disable-socket --allow-unix-socket $(TEST_DIR) --timeout 10
 
 # Build Documentation using MkDocs
 docs:
