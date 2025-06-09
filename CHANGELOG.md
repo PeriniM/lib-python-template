@@ -1,3 +1,11 @@
+## [1.0.3](https://github.com/PeriniM/python-lib-template/compare/v1.0.2...v1.0.3) (2025-06-09)
+
+
+### Bug Fixes
+
+* name ([98bab72](https://github.com/PeriniM/python-lib-template/commit/98bab7204b3e7fb22339db2e3430519a38a83e7b))
+* new name ([2c77a1b](https://github.com/PeriniM/python-lib-template/commit/2c77a1b11f2e61ab0aba48650efa1deea713e115))
+
 ## [1.0.2](https://github.com/PeriniM/python-lib-template/compare/v1.0.1...v1.0.2) (2025-06-09)
 
 
