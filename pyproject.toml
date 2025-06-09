@@ -1,5 +1,5 @@
 [project]
-name = "python-lib-template"
+name = "lib-python-template"
 version = "1.0.0"
 description = "Python library template"
 license = {text = "MIT"}
